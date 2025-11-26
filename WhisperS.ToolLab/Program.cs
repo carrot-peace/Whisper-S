@@ -4,7 +4,7 @@ using System.Diagnostics;
 class Program {
     static int Main(string[] args) {
         Console.WriteLine("Whisper-S Tool Lab");
-        Console.WriteLine("使用 C# 进行一次ffmpeg -version 的调用\n")
+        Console.WriteLine("使用 C# 进行一次ffmpeg -version 的调用\n");
 
         //命令配置
         var startInfo = new ProcessStartInfo {
@@ -28,6 +28,9 @@ class Program {
             string stdout = process.StandardOutput.ReadToEnd();
             string stderr = process.StandardError.ReadToEnd();
 
+        }    catch (Exception ex) {
+            Console.WriteLine("调用 ffmpeg 失败: " + ex.Message);
+            return -1;
         }
 
     }
