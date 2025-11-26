@@ -1,3 +1,4 @@
 <Solution>
   <Project Path="WhisperS.Cli/WhisperS.Cli.csproj" />
+  <Project Path="WhisperS.Core/WhisperS.Core.csproj" />
 </Solution>
