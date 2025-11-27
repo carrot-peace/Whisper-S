@@ -30,6 +30,10 @@ namespace WhisperS.Core
             bool useCoreMlDecoder = false,
             IEnumerable<IAudioPreProcessor>? preProcessors = null)
         {
+            if (threads <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(threads), "threads must be greater than zero.");
+            }
+
             _whisperRoot = whisperRoot
                             ?? Environment.GetEnvironmentVariable("WSUB_WHISPER_ROOT")
                             ?? Path.Combine(Directory.GetCurrentDirectory(), "whisper.cpp");
@@ -61,7 +65,7 @@ namespace WhisperS.Core
             IProgress<string>? progress = null)
         {
             inputPath = Path.GetFullPath(inputPath);
-            var tempFiles = new List<string>();
+            var tempFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             void TrackTemp(string path)
             {
@@ -73,9 +77,7 @@ namespace WhisperS.Core
                     return; // never delete the original input
                 }
 
-                if (!tempFiles.Contains(path)) {
-                    tempFiles.Add(path);
-                }
+                tempFiles.Add(path);
             }
 
             if (!File.Exists(inputPath)) {
