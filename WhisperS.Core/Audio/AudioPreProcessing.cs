@@ -47,7 +47,7 @@ namespace WhisperS.Core.Audio
         }
     }
 
-    // 插件 2：简单高通 + 低通滤波（滤掉过低和过高频）
+    // 简单高通 + 低通滤波
     public sealed class SimpleFilterPreProcessor : IAudioPreProcessor
     {
         private readonly string _ffmpegPath;

@@ -5,7 +5,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using WhisperS.Core.Audio;
 
-// New: enable preprocessor support
 namespace WhisperS.Core
 {
     public class SubtitleGenerator
@@ -33,7 +32,7 @@ namespace WhisperS.Core
         {
             _whisperRoot = whisperRoot
                             ?? Environment.GetEnvironmentVariable("WSUB_WHISPER_ROOT")
-                            ?? "/Users/ptilopsis/Whisper-S/whisper.cpp";
+                            ?? Path.Combine(Directory.GetCurrentDirectory(), "whisper.cpp");
 
             _whisperCliPath = whisperCliPath
                               ?? Environment.GetEnvironmentVariable("WSUB_WHISPER_CLI")
@@ -62,6 +61,22 @@ namespace WhisperS.Core
             IProgress<string>? progress = null)
         {
             inputPath = Path.GetFullPath(inputPath);
+            var tempFiles = new List<string>();
+
+            void TrackTemp(string path)
+            {
+                if (string.IsNullOrWhiteSpace(path)) {
+                    return;
+                }
+
+                if (string.Equals(path, inputPath, StringComparison.OrdinalIgnoreCase)) {
+                    return; // never delete the original input
+                }
+
+                if (!tempFiles.Contains(path)) {
+                    tempFiles.Add(path);
+                }
+            }
 
             if (!File.Exists(inputPath)) {
                 throw new FileNotFoundException("Input file not found", inputPath);
@@ -80,11 +95,12 @@ namespace WhisperS.Core
 
             string tempWav = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.wav");
             string processedWav = tempWav;
+            TrackTemp(tempWav);
             string outputPrefix = Path.Combine(inputDir, fileNameWithoutExt);
             string outputSrt = outputPrefix + ".srt";
 
             try {
-                // 1. 原始转码
+                // 转码
                 progress?.Report($"[ffmpeg] Converting to wav: {tempWav}");
 
                 string ffmpegArgs =
@@ -95,13 +111,12 @@ namespace WhisperS.Core
                     throw new InvalidOperationException($"ffmpeg failed with exit code {ffmpegExit}.");
                 }
 
-                // 2. 依次执行所有预处理插件
                 foreach (var processor in _preProcessors) {
                     progress?.Report($"[pre] {processor.Name}...");
                     processedWav = await processor.ProcessAsync(processedWav, progress);
+                    TrackTemp(processedWav);
                 }
 
-                // 3. 构造 whisper-cli 参数
                 string whisperArgs =
                     $"-m \"{_modelPath}\" " +
                     $"-f \"{processedWav}\" " +
@@ -131,9 +146,8 @@ namespace WhisperS.Core
                 return outputSrt;
             }
             finally {
-                TryDelete(tempWav);
-                if (processedWav != tempWav) {
-                    TryDelete(processedWav);
+                foreach (var temp in tempFiles) {
+                    TryDelete(temp);
                 }
             }
         }
