@@ -3,54 +3,52 @@ using System.Diagnostics;
 using System.Threading.Tasks;
 
 namespace WhisperS.Core
-{
-    internal static class ProcessRunner
     {
-        public static Task<int> RunAsync(
-            string fileName,
-            string arguments,
-            IProgress<string>? progress = null)
+        internal static class ProcessRunner
         {
-            var tcs = new TaskCompletionSource<int>();
+            public static async Task<int> RunAsync(
+                string fileName,
+                string arguments,
+                IProgress<string>? progress = null)
+            {
+                var psi = new ProcessStartInfo {
+                    FileName = fileName,
+                    Arguments = arguments,
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true
+                };
 
-            var psi = new ProcessStartInfo {
-                FileName = fileName,
-                Arguments = arguments,
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true
-            };
+                var process = new Process {
+                    StartInfo = psi,
+                };
 
-            var process = new Process {
-                StartInfo = psi,
-                EnableRaisingEvents = true
-            };
-
-            process.OutputDataReceived += (_, e) => {
-                if (!string.IsNullOrEmpty(e.Data)) {
-                    progress?.Report(e.Data);
+                process.OutputDataReceived += (_, e) => {
+                    if (!string.IsNullOrEmpty(e.Data)) {
+                        progress?.Report(e.Data);
                 }
             };
 
             process.ErrorDataReceived += (_, e) => {
-                if (!string.IsNullOrEmpty(e.Data)) {
-                    progress?.Report(e.Data);
+                    if (!string.IsNullOrEmpty(e.Data)) {
+                        progress?.Report(e.Data);
+                    }
+                };
+
+                try {
+                    if (!process.Start()) {
+                        throw new InvalidOperationException($"Failed to start process: {fileName}");
+                    }
+
+                    process.BeginOutputReadLine();
+                    process.BeginErrorReadLine();
+
+                    await process.WaitForExitAsync().ConfigureAwait(false);
+                    return process.ExitCode;
                 }
-            };
-
-            process.Exited += (_, _) => {
-                tcs.TrySetResult(process.ExitCode);
-                process.Dispose();
-            };
-
-            if (!process.Start()) {
-                throw new InvalidOperationException($"Failed to start process: {fileName}");
+                finally {
+                    process.Dispose();
+                }
             }
-
-            process.BeginOutputReadLine();
-            process.BeginErrorReadLine();
-
-            return tcs.Task;
         }
     }
-}

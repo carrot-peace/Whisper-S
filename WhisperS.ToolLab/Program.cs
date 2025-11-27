@@ -12,7 +12,7 @@ class Program {
             Arguments = "-version",
             RedirectStandardOutput = true,
             RedirectStandardError = true,
-            UseShellExcute = false,
+            UseShellExecute = false,
             CreateNoWindow = true,
         };
 
@@ -28,7 +28,14 @@ class Program {
             string stdout = process.StandardOutput.ReadToEnd();
             string stderr = process.StandardError.ReadToEnd();
 
-        }    catch (Exception ex) {
+            Console.WriteLine(stdout);
+            if (!string.IsNullOrWhiteSpace(stderr)) {
+                Console.WriteLine(stderr);
+            }
+
+            return process.ExitCode;
+
+        } catch (Exception ex) {
             Console.WriteLine("调用 ffmpeg 失败: " + ex.Message);
             return -1;
         }
