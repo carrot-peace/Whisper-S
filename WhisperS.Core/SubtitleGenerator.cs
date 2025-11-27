@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using WhisperS.Core.Audio;
 
+// New: enable preprocessor support
 namespace WhisperS.Core
 {
     public class SubtitleGenerator
